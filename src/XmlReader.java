@@ -35,7 +35,6 @@ class XmlReader
             doc.getDocumentElement().normalize();
 
             NodeList nodeList=doc.getElementsByTagName("*");
-            System.out.println(nodeList.getLength());
 
             Element el=(Element)nodeList.item(0);
             buffWriter.write(el.getTextContent().replace(" ","").replace("\n",""));
