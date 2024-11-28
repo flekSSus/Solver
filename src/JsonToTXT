@@ -1,0 +1,56 @@
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Scanner;
+
+
+class JsonToTextConverter {
+    private String inputFile = "no-info";
+    private String outputFile = "no-info";
+    private Gson gson;
+    public JsonToTextConverter() {
+        gson = new Gson();
+    }
+    public void setInputName(String fileInputNameParametr) {
+        inputFile = fileInputNameParametr;
+    }
+    public void setOutputName(String fileOutputNameParametr) {
+        outputFile = fileOutputNameParametr;
+    }
+    public void processJsonToText() {
+        try (FileReader reader = new FileReader(inputFile)) {
+            JsonElement jsonElement = gson.fromJson(reader, JsonElement.class);
+            String result = convertJsonToText(jsonElement);
+            try (FileWriter writer = new FileWriter(outputFile)) {
+                writer.write(result);
+            }
+            System.out.println("Данные успешно сконвертированы в текстовый файл!");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public String convertJsonToText(JsonElement jsonElement) {
+        StringBuilder text = new StringBuilder();
+        if (jsonElement.isJsonObject()) {
+            JsonObject jsonObject = jsonElement.getAsJsonObject();
+            for (String key : jsonObject.keySet()) {
+                text.append(convertJsonToText(jsonObject.get(key)));
+                text.append(" ");
+            }
+        } else if (jsonElement.isJsonArray()) {
+            JsonArray jsonArray = jsonElement.getAsJsonArray();
+            for (JsonElement element : jsonArray) {
+                text.append(convertJsonToText(element));
+                text.append(" ");
+            }
+        } else if (jsonElement.isJsonPrimitive()) {
+            text.append(jsonElement.getAsString());
+        }
+        return text.toString();
+    }
+}
+
