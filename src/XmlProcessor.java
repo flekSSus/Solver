@@ -6,71 +6,59 @@ import org.w3c.dom.*;
 
 class XmlProcessor
 {
-    private String fileInputName;
-    private String fileOutputName;
 
-    public void setInputName(String fileNameParam)
+    public void compute(String inputFilePath) throws Exception
     {
-        fileInputName=fileNameParam;
-    }
-    public void setOutputName(String fileNameParam)
-    {
-        fileOutputName=fileNameParam;
-    }
 
-    public XmlProcessor()
-    {
-        fileInputName="no-info";
-        fileOutputName="no-info";
-    }
-    public XmlProcessor(String fileInputNameParam, String fileOutputNameParam)
-    {
-        fileInputName=fileInputNameParam;
-        fileOutputName=fileOutputNameParam;
+        File newFile = new File(inputFilePath.substring(0,inputFilePath.lastIndexOf('.'))+"-computed-.xml");
+        newFile.createNewFile();
+        var buffWr = new BufferedWriter(new FileWriter(newFile));
+        buffWr.write(TxtProcessor.processContent(TxtProcessor.readFile(inputFilePath)));
+
+        buffWr.close();
     }
 
-    public void compute() throws Exception
+    public void toTxt(String inputFilePath, String outputFilePath)throws Exception
     {
+        
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Document doc = builder.parse(new File(inputFilePath));
+        doc.getDocumentElement().normalize();
 
-        TxtProcessor  romaSosal= new TxtProcessor();
+        StringBuilder txtContent = new StringBuilder();
+        var buffWr = new BufferedWriter(new FileWriter(outputFilePath));
+        
+        nodeToTxt(doc.getDocumentElement(), txtContent, 0);
+        buffWr.write(txtContent.toString());
 
-        try(var outWriter = new BufferedWriter(new FileWriter(fileOutputName)))
+        buffWr.close();
+    }
+
+
+    private void nodeToTxt(Node node, StringBuilder writer, int depth) 
+    {
+        String indent = "   ".repeat(depth);
+
+        if (node.getNodeType() == Node.ELEMENT_NODE) 
         {
-            DocumentBuilderFactory factory=DocumentBuilderFactory.newInstance();
-            DocumentBuilder builder=factory.newDocumentBuilder();
-            Document doc=builder.parse(new File(fileInputName));
-            doc.getDocumentElement().normalize();
+            writer.append(indent).append(node.getNodeName()).append(":\n");
+        }
 
-            NodeList list = doc.getElementsByTagName("*");
+        NodeList children = node.getChildNodes();
+        for (int i = 0; i < children.getLength(); ++i) 
+        {
+            nodeToTxt(children.item(i), writer, depth + (node.getNodeType() == Node.ELEMENT_NODE ? 1 : 0));
+        }
 
-           //translate in txt 
-            var bWr= new BufferedWriter(new FileWriter("textInput.txt"));
-            bWr.write(list.item(0).getTextContent());
-            bWr.close();
-            
-            //compute and write in output
-            var bR= new BufferedReader(new FileReader("textInput.txt"));
-            String tmpStr=null;
-            for(int i=0;i<list.getLength();++i)
+        if (node.getNodeType() == Node.TEXT_NODE) 
+        {
+            String textContent = node.getNodeValue().trim();
+            if (!textContent.isEmpty()) 
             {
-                tmpStr=bR.readLine();
-                if(tmpStr!=null)
-                {
-                    outWriter.write(list.item(i).getNodeName()+": "+romaSosal.processContent(tmpStr));
-                    outWriter.write('\n');
-                }
+                writer.append(indent).append(textContent).append("\n");
             }
-            bR.close();
-
-            
-
-        }
-        catch(Exception e)
-        {
-            System.out.println(e);
-            System.out.println("pizdez");
         }
 
     }
-
 }
