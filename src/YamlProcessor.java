@@ -30,5 +30,22 @@ class YamlProcessor
 
     }
 
+    public void txtToYaml(String fileInputPath) throws Exception
+    {
+        String newName = fileInputPath.substring(0,fileInputPath.lastIndexOf('.'))+".yaml";
+        File newFile = new File(newName);
+        newFile.createNewFile();
+        var buffR = new BufferedReader(new FileReader(fileInputPath));
+        var buffW = new BufferedWriter(new FileWriter(newName));
+
+        String line;
+        while((line=buffR.readLine()) != null)
+        {
+            buffW.write(line+'\n');
+        }
+
+        buffR.close();
+        buffW.close();
+    }
     
 }
