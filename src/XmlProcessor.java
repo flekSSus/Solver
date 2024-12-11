@@ -3,6 +3,10 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.*;
+import java.util.Stack;
+import javax.xml.transform.*;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 class XmlProcessor
 {
@@ -35,6 +39,70 @@ class XmlProcessor
         buffWr.close();
     }
 
+    public static void txtToXml(String fileInputPath, String fileOutputPath) throws Exception 
+    {
+        File txtFile = new File(fileInputPath);
+        BufferedReader reader = new BufferedReader(new FileReader(txtFile));
+
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Document doc = builder.newDocument();
+
+        Element root = null;
+        Stack<Element> stack = new Stack<>();
+        String line;
+
+        while ((line = reader.readLine()) != null) 
+        {
+
+            int count = 0;
+            while (count < line.length() && line.charAt(count) == ' ') 
+            {
+                count++;
+            }
+            int depth = count/ 3;
+
+            line = line.trim();
+
+            if (line.contains(":")) 
+            {
+                String tagName = line.replace(":", "").trim();
+                Element element = doc.createElement(tagName);
+
+                if (root == null) 
+                {
+                    root = element;
+                } 
+                else 
+                {
+                    while (stack.size() > depth) 
+                    {
+                        stack.pop();
+                    }
+                    stack.peek().appendChild(element);
+                }
+
+                stack.push(element);
+            } 
+            else 
+            {
+                if (!stack.isEmpty()) 
+                {
+                    stack.peek().appendChild(doc.createTextNode(line));
+                }
+            }
+        }
+        reader.close();
+
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        Transformer transformer = transformerFactory.newTransformer();
+        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "3");
+        DOMSource source = new DOMSource(root);
+        StreamResult result = new StreamResult(new File(fileOutputPath));
+        transformer.transform(source, result);
+
+    }
 
     private void nodeToTxt(Node node, StringBuilder writer, int depth) 
     {
@@ -61,4 +129,5 @@ class XmlProcessor
         }
 
     }
+
 }
