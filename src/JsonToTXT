@@ -1,56 +1,34 @@
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonArray;
+import com.google.gson.JsonParser;
+import java.io.IOException;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Scanner;
 
+public class JsonToSingleLineTextConverter {
+    private String inputJsonFile = "input.json";  
+    private String outputTextFile = "output.txt"; 
 
-class JsonToTextConverter {
-    private String inputFile = "no-info";
-    private String outputFile = "no-info";
-    private Gson gson;
-    public JsonToTextConverter() {
-        gson = new Gson();
+    public void setInputJsonFile(String inputJsonFile) {
+        this.inputJsonFile = inputJsonFile;
     }
-    public void setInputName(String fileInputNameParametr) {
-        inputFile = fileInputNameParametr;
+
+    public void setOutputTextFile(String outputTextFile) {
+        this.outputTextFile = outputTextFile;
     }
-    public void setOutputName(String fileOutputNameParametr) {
-        outputFile = fileOutputNameParametr;
-    }
+
     public void processJsonToText() {
-        try (FileReader reader = new FileReader(inputFile)) {
-            JsonElement jsonElement = gson.fromJson(reader, JsonElement.class);
-            String result = convertJsonToText(jsonElement);
-            try (FileWriter writer = new FileWriter(outputFile)) {
-                writer.write(result);
+        try (FileReader reader = new FileReader(inputJsonFile)) {
+            
+            JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
+            String jsonString = jsonObject.toString();
+
+            
+            try (FileWriter writer = new FileWriter(outputTextFile)) {
+                writer.write(jsonString);
+                System.out.println("JSON успешно записан в строку в текстовый файл!");
             }
-            System.out.println("Данные успешно сконвертированы в текстовый файл!");
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    public String convertJsonToText(JsonElement jsonElement) {
-        StringBuilder text = new StringBuilder();
-        if (jsonElement.isJsonObject()) {
-            JsonObject jsonObject = jsonElement.getAsJsonObject();
-            for (String key : jsonObject.keySet()) {
-                text.append(convertJsonToText(jsonObject.get(key)));
-                text.append(" ");
-            }
-        } else if (jsonElement.isJsonArray()) {
-            JsonArray jsonArray = jsonElement.getAsJsonArray();
-            for (JsonElement element : jsonArray) {
-                text.append(convertJsonToText(element));
-                text.append(" ");
-            }
-        } else if (jsonElement.isJsonPrimitive()) {
-            text.append(jsonElement.getAsString());
-        }
-        return text.toString();
-    }
 }
-
