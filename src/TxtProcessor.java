@@ -9,14 +9,16 @@ public class TxtProcessor {
     }
 
     public static String processContent(String content) {
-        content = content.replaceAll("\\(-\\)", "(-1)*");
-
+        content = content.replaceAll("\\(-\\)", "(-1)");
+        content = content.replaceAll("\\(\\)", "(1)");
         content = content.replaceAll("\\)\\(", ")*(");
 
-        String regex = "\\(([^()]+)\\)";
-        Pattern pattern = Pattern.compile(regex);
+        content = evaluateFactorials(content);
 
         while (content.contains("(")) {
+            String regex = "\\(([^()]+)\\)";
+            Pattern pattern = Pattern.compile(regex);
+
             Matcher matcher = pattern.matcher(content);
             StringBuffer buffer = new StringBuffer();
             while (matcher.find()) {
@@ -28,10 +30,8 @@ public class TxtProcessor {
             content = buffer.toString();
         }
 
-        content = evaluateFactorials(content);
-
-        content = evaluateTrigonometricFunctions(content);
-
+        content = simplifyConsecutiveSigns(content);
+        content = evaluatePowers(content);
         content = simplifyConsecutiveSigns(content);
 
         return evaluateExpression(content);
@@ -40,13 +40,13 @@ public class TxtProcessor {
     private static String evaluateExpression(String expression) {
         String original = expression;
 
+        expression = evaluateFactorials(expression);
+        expression = evaluateTrigonometricFunctions(expression);
         expression = evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*\\^\\s*\\d+(\\.\\d+)?", "^");
         expression = evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*\\*\\s*\\d+(\\.\\d+)?", "*");
         expression = evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*/\\s*\\d+(\\.\\d+)?", "/");
         expression = evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*\\+\\s*\\d+(\\.\\d+)?", "+");
         expression = evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*-\\s*\\d+(\\.\\d+)?", "-");
-        expression = evaluateFactorials(expression);
-        expression = evaluateTrigonometricFunctions(expression);
 
         return expression.equals(original) ? expression : expression.trim();
     }
@@ -80,21 +80,48 @@ public class TxtProcessor {
         }
     }
 
+    private static String evaluatePowers(String expression) {
+        Pattern pattern = Pattern.compile("(\\d+(\\.\\d+)?|\\d+)\\^(-?\\d+(\\.\\d+)?)");
+        Matcher matcher = pattern.matcher(expression);
+
+        StringBuffer buffer = new StringBuffer();
+        while (matcher.find()) {
+            String baseStr = matcher.group(1);
+            String exponentStr = matcher.group(3);
+
+            double base = Double.parseDouble(baseStr);
+            double exponent = Double.parseDouble(exponentStr);
+
+            double result = Math.pow(Math.abs(base), exponent);
+
+            matcher.appendReplacement(buffer, String.valueOf(result));
+        }
+        matcher.appendTail(buffer);
+
+        return buffer.toString();
+    }
+
     private static String evaluateFactorials(String expression) {
-        Pattern pattern = Pattern.compile("([-+]?\\d+(\\.\\d+)?)!");
+        Pattern pattern = Pattern.compile("([-+]?(\\d+(\\.\\d+)?|\\(\\-\\d+\\)))!");
         Matcher matcher = pattern.matcher(expression);
 
         StringBuffer buffer = new StringBuffer();
         while (matcher.find()) {
             String numberStr = matcher.group(1);
-            double number = Double.parseDouble(numberStr);
 
-            if (number < 0 || number % 1 != 0) {
-                throw new IllegalArgumentException("Факториал определён только для неотрицательных целых чисел: " + numberStr);
+            if (numberStr.startsWith("(")) {
+                throw new IllegalArgumentException("Факториал определён только для неотрицательных целых чисел");
             }
 
-            long result = factorial((int) number);
-            matcher.appendReplacement(buffer, String.valueOf(result));
+            double number = Double.parseDouble(numberStr);
+
+            if (number < 0) {
+                long result = factorial((int) Math.abs(number));
+                matcher.appendReplacement(buffer, "-" + result);
+            } else {
+                long result = factorial((int) number);
+                matcher.appendReplacement(buffer, String.valueOf(result));
+            }
         }
         matcher.appendTail(buffer);
 
@@ -118,9 +145,9 @@ public class TxtProcessor {
             double value = Double.parseDouble(argument);
 
             double result = switch (function) {
-                case "sin" -> Math.sin(Math.toRadians(value));
-                case "cos" -> Math.cos(Math.toRadians(value));
-                case "tan" -> Math.tan(Math.toRadians(value));
+                case "sin" -> Math.sin(value);
+                case "cos" -> Math.cos(value);
+                case "tan" -> Math.tan(value);
                 default -> throw new IllegalArgumentException("Неизвестная функция: " + function);
             };
 
