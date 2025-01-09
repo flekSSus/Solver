@@ -13,6 +13,8 @@ public class TxtProcessor {
         content = content.replaceAll("\\(\\)", "(1)");
         content = content.replaceAll("\\)\\(", ")*(");
 
+        content = evaluatePowers(content);
+
         content = evaluateFactorials(content);
 
         while (content.contains("(")) {
@@ -31,7 +33,7 @@ public class TxtProcessor {
         }
 
         content = simplifyConsecutiveSigns(content);
-        content = evaluatePowers(content);
+        content = evaluateFactorials(content);
         content = simplifyConsecutiveSigns(content);
 
         return evaluateExpression(content);
@@ -42,13 +44,38 @@ public class TxtProcessor {
 
         expression = evaluateFactorials(expression);
         expression = evaluateTrigonometricFunctions(expression);
-        expression = evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*\\^\\s*\\d+(\\.\\d+)?", "^");
         expression = evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*\\*\\s*\\d+(\\.\\d+)?", "*");
         expression = evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*/\\s*\\d+(\\.\\d+)?", "/");
         expression = evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*\\+\\s*\\d+(\\.\\d+)?", "+");
         expression = evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*-\\s*\\d+(\\.\\d+)?", "-");
 
         return expression.equals(original) ? expression : expression.trim();
+    }
+
+    private static String evaluatePowers(String expression) {
+        Pattern pattern = Pattern.compile("(-?\\d+(?:\\.\\d+)?|\\(\\s*-?\\d+(?:\\.\\d+)?\\s*\\))\\s*\\^\\s*(-?\\d+(?:\\.\\d+)?|\\(\\s*-?\\d+(?:\\.\\d+)?\\s*\\))");
+        Matcher matcher = pattern.matcher(expression);
+
+        StringBuffer buffer = new StringBuffer();
+        while (matcher.find()) {
+            String base0Str = matcher.group(1).replaceAll(" ", "");
+            String baseStr = matcher.group(1).replaceAll("[()\\s]+", "");
+            String exponentStr = matcher.group(2).replaceAll("[()\\s]+", "");
+
+            double base = Double.parseDouble(baseStr);
+            double exponent = Double.parseDouble(exponentStr);
+
+            if (base < 0 && exponent % 1 != 0) {
+                throw new IllegalArgumentException("Возведение в степень для отрицательных чисел с дробным показателем не поддерживается");
+            }
+            double result = Math.pow(base, exponent);
+            if (!base0Str.contains("(-")) result = -result;
+
+            matcher.appendReplacement(buffer, String.valueOf(result));
+        }
+        matcher.appendTail(buffer);
+
+        return buffer.toString();
     }
 
     private static String evaluateByRegex(String expression, String regex, String operator) {
@@ -80,48 +107,22 @@ public class TxtProcessor {
         }
     }
 
-    private static String evaluatePowers(String expression) {
-        Pattern pattern = Pattern.compile("(\\d+(\\.\\d+)?|\\d+)\\^(-?\\d+(\\.\\d+)?)");
-        Matcher matcher = pattern.matcher(expression);
-
-        StringBuffer buffer = new StringBuffer();
-        while (matcher.find()) {
-            String baseStr = matcher.group(1);
-            String exponentStr = matcher.group(3);
-
-            double base = Double.parseDouble(baseStr);
-            double exponent = Double.parseDouble(exponentStr);
-
-            double result = Math.pow(Math.abs(base), exponent);
-
-            matcher.appendReplacement(buffer, String.valueOf(result));
-        }
-        matcher.appendTail(buffer);
-
-        return buffer.toString();
-    }
-
     private static String evaluateFactorials(String expression) {
-        Pattern pattern = Pattern.compile("([-+]?(\\d+(\\.\\d+)?|\\(\\-\\d+\\)))!");
+        Pattern pattern = Pattern.compile("([-+]?(\\d+(\\.\\d+)?|\\(\\s*-?\\d+(\\.\\d+)?\\s*\\)))\\s*!");
         Matcher matcher = pattern.matcher(expression);
 
         StringBuffer buffer = new StringBuffer();
         while (matcher.find()) {
-            String numberStr = matcher.group(1);
-
-            if (numberStr.startsWith("(")) {
-                throw new IllegalArgumentException("Факториал определён только для неотрицательных целых чисел");
-            }
+            String numberStr = matcher.group(1).replaceAll("[()\\s]+", "");
 
             double number = Double.parseDouble(numberStr);
 
-            if (number < 0) {
-                long result = factorial((int) Math.abs(number));
-                matcher.appendReplacement(buffer, "-" + result);
-            } else {
-                long result = factorial((int) number);
-                matcher.appendReplacement(buffer, String.valueOf(result));
+            if (number % 1 != 0 || number < 0) {
+                throw new IllegalArgumentException("Факториал определён только для неотрицательных целых чисел");
             }
+
+            long result = factorial((int)number);
+            matcher.appendReplacement(buffer, String.valueOf(result));
         }
         matcher.appendTail(buffer);
 
