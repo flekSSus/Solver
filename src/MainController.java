@@ -2,10 +2,12 @@ import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.Label;
 import javafx.stage.FileChooser;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.File;
 import java.nio.file.Files;
 import java.io.IOException;
@@ -17,6 +19,12 @@ public class MainController
     private ComboBox<String> extComboBox;
 
     @FXML
+    private Label fileNameLabel; 
+
+    @FXML
+    private Label fileSavedLabel; 
+
+    @FXML
     private TextArea outputTextArea;
     
     @FXML
@@ -25,17 +33,13 @@ public class MainController
     @FXML
     public void initialize() 
     {
-        // Add additional items programmatically (optional)
         extComboBox.getItems().addAll("txt", "xml","json","yaml");
-
-        // Set a default selected item (optional)
         extComboBox.setValue("txt");
     }
 
     @FXML
     private void handleComboBoxAction() 
     {
-        // Get selected item
         String selectedItem = extComboBox.getValue();
         System.out.println("Selected Item: " + selectedItem);
     }
@@ -58,6 +62,7 @@ public class MainController
                 StringBuilder content = new StringBuilder();
                 String line;
                 
+                fileNameLabel.setText(selectedFile.getName());
                 while ((line = reader.readLine()) != null) 
                 {
                     content.append(line).append("\n");
@@ -69,6 +74,8 @@ public class MainController
                 inputTextArea.setText("Error reading file: " + e.getMessage());
             }
         }
+
+        
     }
 
 
@@ -132,6 +139,29 @@ public class MainController
                 break;
         }
 
+    }
+
+    @FXML
+    private void handleSaveResult() 
+    {
+
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Save Result As");
+
+        File selectedFile = fileChooser.showSaveDialog(null);
+
+        if (selectedFile != null) 
+        {
+            try (FileWriter writer = new FileWriter(selectedFile)) 
+            {
+                writer.write(outputTextArea.getText());
+                fileSavedLabel.setText("Saved!");
+            } 
+            catch (IOException e) 
+            {
+                fileSavedLabel.setText("Error");
+            }
+        }
     }
 }
 
