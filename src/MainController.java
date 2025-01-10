@@ -6,6 +6,7 @@ import javafx.scene.control.Label;
 import javafx.stage.FileChooser;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.File;
@@ -95,13 +96,13 @@ public class MainController
         switch (extChoice) 
         {
             case "txt":
-
+            {
                 result = TxtProcessor.processContent(inputText);
                 outputTextArea.setText(result);
                 break;
-
+            }
             case "xml":
-
+            {
                 File tempFileI = File.createTempFile("inputText", ".tmp");
                 File tempFileO = File.createTempFile("outputText", ".tmp");
                 XmlProcessor xmlProc= new XmlProcessor();
@@ -133,8 +134,47 @@ public class MainController
                 tempFileO.deleteOnExit();
 
                 break;
+            }
             case "json":
+            {
+                File tempFileI = File.createTempFile("inputText", ".json");
+                File tempFileP = File.createTempFile("parsedText", ".tmp");
+                File tempFileO = File.createTempFile("outputText", ".tmp");
+                var jsonParser = new JsonToSingleLineTextConverter();
+
+                Files.writeString(tempFileI.toPath(), inputText);
+                jsonParser.setInputJsonFile(tempFileI.toString());
+                jsonParser.setOutputTextFile(tempFileP.toString());
+                jsonParser.processJsonToText();
+                
+                var buffWriter = new BufferedWriter(new FileWriter(tempFileO.toString()));
+                buffWriter.write(TxtProcessor.processContent(TxtProcessor.readFile(tempFileP.toString())));
+                buffWriter.close();
+
+                if (tempFileO!= null) 
+                {
+                    try (BufferedReader reader = new BufferedReader(new FileReader(tempFileO))) 
+                    {
+                        StringBuilder content = new StringBuilder();
+                        String line;
+                        
+                        while ((line = reader.readLine()) != null) 
+                        {
+                            content.append(line).append("\n");
+                        }
+                        outputTextArea.setText(content.toString());
+                    } 
+                    catch (IOException e) 
+                    {
+                        outputTextArea.setText("Error reading file: " + e.getMessage());
+                    }
+                }
+
+                tempFileI.deleteOnExit();
+                tempFileO.deleteOnExit();
+
                 break;
+            }
             case "yaml":
                 break;
         }
