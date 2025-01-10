@@ -1,9 +1,10 @@
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.io.IOException;
-import static org.junit.Assert.*;
 
 public class XmlProcessorTest 
 {
