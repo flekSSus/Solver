@@ -66,7 +66,12 @@ class XmlProcessor
 
             if (line.contains(":")) 
             {
-                String tagName = line.replace(":", "").trim();
+                String[] parts = line.split(":", 2);
+                String tagName = parts[0].trim();  
+                String value = parts.length > 1 ? parts[1].trim() : ""; 
+            
+//                Element element = doc.createElement(tagName);
+ //               String tagName = line.replace(":", "").trim();
                 Element element = doc.createElement(tagName);
 
                 if (root == null) 
@@ -83,6 +88,10 @@ class XmlProcessor
                 }
 
                 stack.push(element);
+                if (!value.isEmpty()) 
+                {
+                    element.appendChild(doc.createTextNode(value));
+                }
             } 
             else 
             {
@@ -98,6 +107,9 @@ class XmlProcessor
         Transformer transformer = transformerFactory.newTransformer();
         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
         transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "3");
+
+        transformer.setOutputProperty(OutputKeys.METHOD, "html");
+
         DOMSource source = new DOMSource(root);
         StreamResult result = new StreamResult(new File(fileOutputPath));
         transformer.transform(source, result);

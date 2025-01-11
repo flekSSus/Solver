@@ -20,6 +20,9 @@ public class MainController
     private ComboBox<String> extComboBox;
 
     @FXML
+    private ComboBox<String> outExtComboBox;
+
+    @FXML
     private Label fileNameLabel; 
 
     @FXML
@@ -36,14 +39,53 @@ public class MainController
     {
         extComboBox.getItems().addAll("txt", "xml","json","yaml");
         extComboBox.setValue("txt");
+
+        outExtComboBox.setValue("txt");
+        outExtComboBox.getItems().addAll("txt","xml","json","yaml");
+        extComboBox.setOnAction(event -> {
+            String selectedItem = extComboBox.getValue();
+            if (selectedItem != null) {
+                updateComboBox2(selectedItem);
+            }
+        });
     }
 
-    @FXML
-    private void handleComboBoxAction() 
+    private void updateComboBox2(String selectedItem) 
     {
-        String selectedItem = extComboBox.getValue();
-        System.out.println("Selected Item: " + selectedItem);
+        outExtComboBox.getItems().clear();
+
+        switch (selectedItem) 
+        {
+            case "txt":
+            {
+                outExtComboBox.setValue("txt");
+                outExtComboBox.getItems().addAll("txt","json", "xml","yaml");
+                break;
+            }
+            case "json":
+            {
+                outExtComboBox.setValue("json");
+                outExtComboBox.getItems().addAll("txt","json");
+                break;
+            }
+            case "xml":
+            {
+                outExtComboBox.setValue("xml");
+                outExtComboBox.getItems().addAll("txt","xml");
+                break;
+            }
+            case "yaml":
+            {
+                outExtComboBox.setValue("yaml");
+                outExtComboBox.getItems().addAll("txt","yaml");
+                break;
+            }
+            default:
+                break;
+        }
+
     }
+
 
     @FXML
     private void handleLoadFile() 
@@ -86,6 +128,7 @@ public class MainController
         String inputText = inputTextArea.getText();
         String result; 
         String extChoice = extComboBox.getValue();
+        String outChoice = outExtComboBox.getValue();
 
         if (inputText == null || inputText.trim().isEmpty()) 
         {
@@ -98,7 +141,87 @@ public class MainController
             case "txt":
             {
                 result = TxtProcessor.processContent(inputText);
-                outputTextArea.setText(result);
+                switch (outChoice)
+                {
+                    case "txt":
+                    {
+                        outputTextArea.setText(result);
+                        break;
+                    }
+                    case "json":
+                    {
+                        
+                        File tempFileI = File.createTempFile("inputText", ".txt");
+                        File tempFileO = File.createTempFile("outputText", ".tmp");
+                        var jsonParser = new SingleLineTextToJsonConverter();
+
+                        Files.writeString(tempFileI.toPath(), result);
+                        jsonParser.setInputTextFile(tempFileI.toString());
+                        jsonParser.setOutputJsonFile(tempFileO.toString());
+                        jsonParser.processTextToJson();
+                        
+                        if (tempFileO!= null) 
+                        {
+                            try (BufferedReader reader = new BufferedReader(new FileReader(tempFileO))) 
+                            {
+                                StringBuilder content = new StringBuilder();
+                                String line;
+                                
+                                while ((line = reader.readLine()) != null) 
+                                {
+                                    content.append(line).append("\n");
+                                }
+                                outputTextArea.setText(content.toString());
+                            } 
+                            catch (IOException e) 
+                            {
+                                outputTextArea.setText("Error reading file: " + e.getMessage());
+                            }
+                        }
+
+                        tempFileI.deleteOnExit();
+                        tempFileO.deleteOnExit();
+                        break;
+                    }
+                    case "xml":
+                    {
+                        File tempFileI = File.createTempFile("inputText", ".tmp");
+                        File tempFileO = File.createTempFile("outputText", ".tmp");
+                        XmlProcessor xmlProc= new XmlProcessor();
+    
+                        Files.writeString(tempFileI.toPath(), result);
+                        xmlProc.txtToXml(tempFileI.toString(),tempFileO.toString());
+    
+                        if (tempFileO!= null) 
+                        {
+                            try (BufferedReader reader = new BufferedReader(new FileReader(tempFileO))) 
+                            {
+                                StringBuilder content = new StringBuilder();
+                                String line;
+                                
+                                while ((line = reader.readLine()) != null) 
+                                {
+                                    content.append(line).append("\n");
+                                }
+                                outputTextArea.setText(content.toString());
+                            } 
+                            catch (IOException e) 
+                            {
+                                outputTextArea.setText("Error reading file: " + e.getMessage());
+                            }
+                        }
+    
+                        tempFileI.deleteOnExit();
+                        tempFileO.deleteOnExit();
+                        break;
+                    }
+                    case "yaml":
+                    {
+                        break;
+                    }
+                    default:   
+                        break;
+                }
                 break;
             }
             case "xml":
@@ -106,11 +229,11 @@ public class MainController
                 File tempFileI = File.createTempFile("inputText", ".tmp");
                 File tempFileO = File.createTempFile("outputText", ".tmp");
                 XmlProcessor xmlProc= new XmlProcessor();
-
+    
                 Files.writeString(tempFileI.toPath(), inputText);
                 xmlProc.compute(tempFileI.toPath().toString());
                 xmlProc.toTxt(tempFileI.toPath().toString().substring(0,tempFileI.toPath().toString().lastIndexOf('.'))+"-computed-.xml",tempFileO.toPath().toString());
-
+    
                 if (tempFileO!= null) 
                 {
                     try (BufferedReader reader = new BufferedReader(new FileReader(tempFileO))) 
@@ -129,10 +252,10 @@ public class MainController
                         outputTextArea.setText("Error reading file: " + e.getMessage());
                     }
                 }
-
+    
                 tempFileI.deleteOnExit();
                 tempFileO.deleteOnExit();
-
+    
                 break;
             }
             case "json":
