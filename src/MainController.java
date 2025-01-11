@@ -40,6 +40,7 @@ public class MainController
         extComboBox.getItems().addAll("txt", "xml","json","yaml");
         extComboBox.setValue("txt");
 
+        fileSavedLabel.setVisible(false);
         outExtComboBox.setValue("txt");
         outExtComboBox.getItems().addAll("txt","xml","json","yaml");
         extComboBox.setOnAction(event -> {
@@ -217,6 +218,34 @@ public class MainController
                     }
                     case "yaml":
                     {
+                        File tempFileI = File.createTempFile("inputText", ".tmp");
+                        File tempFileO = File.createTempFile("outputText", ".tmp");
+                        var yamlParser= new YamlProcessor();
+    
+                        Files.writeString(tempFileI.toPath(), result);
+                        yamlParser.txtToYaml(tempFileI.toString());
+    
+                        if (tempFileO!= null) 
+                        {
+                            try (BufferedReader reader = new BufferedReader(new FileReader(tempFileI.toString().substring(0,tempFileI.toString().lastIndexOf('.'))+".yaml"))) 
+                            {
+                                StringBuilder content = new StringBuilder();
+                                String line;
+                                
+                                while ((line = reader.readLine()) != null) 
+                                {
+                                    content.append(line).append("\n");
+                                }
+                                outputTextArea.setText(content.toString());
+                            } 
+                            catch (IOException e) 
+                            {
+                                outputTextArea.setText("Error reading file: " + e.getMessage());
+                            }
+                        }
+    
+                        tempFileI.deleteOnExit();
+                        tempFileO.deleteOnExit();
                         break;
                     }
                     default:   
@@ -226,36 +255,75 @@ public class MainController
             }
             case "xml":
             {
-                File tempFileI = File.createTempFile("inputText", ".tmp");
-                File tempFileO = File.createTempFile("outputText", ".tmp");
-                XmlProcessor xmlProc= new XmlProcessor();
-    
-                Files.writeString(tempFileI.toPath(), inputText);
-                xmlProc.compute(tempFileI.toPath().toString());
-                xmlProc.toTxt(tempFileI.toPath().toString().substring(0,tempFileI.toPath().toString().lastIndexOf('.'))+"-computed-.xml",tempFileO.toPath().toString());
-    
-                if (tempFileO!= null) 
+                switch (outChoice)
                 {
-                    try (BufferedReader reader = new BufferedReader(new FileReader(tempFileO))) 
+                    case "txt":
                     {
-                        StringBuilder content = new StringBuilder();
-                        String line;
-                        
-                        while ((line = reader.readLine()) != null) 
+
+                        File tempFileI = File.createTempFile("inputText", ".tmp");
+                        File tempFileO = File.createTempFile("outputText", ".tmp");
+                        XmlProcessor xmlProc= new XmlProcessor();
+    
+                        Files.writeString(tempFileI.toPath(), inputText);
+                        xmlProc.compute(tempFileI.toPath().toString());
+                        xmlProc.toTxt(tempFileI.toPath().toString().substring(0,tempFileI.toPath().toString().lastIndexOf('.'))+"-computed-.xml",tempFileO.toPath().toString());
+    
+                        if (tempFileO!= null) 
                         {
-                            content.append(line).append("\n");
+                            try (BufferedReader reader = new BufferedReader(new FileReader(tempFileO))) 
+                            {
+                                StringBuilder content = new StringBuilder();
+                                String line;
+                                
+                                while ((line = reader.readLine()) != null) 
+                                {
+                                    content.append(line).append("\n");
+                                }
+                                outputTextArea.setText(content.toString());
+                            } 
+                            catch (IOException e) 
+                            {
+                                outputTextArea.setText("Error reading file: " + e.getMessage());
+                            }
                         }
-                        outputTextArea.setText(content.toString());
-                    } 
-                    catch (IOException e) 
-                    {
-                        outputTextArea.setText("Error reading file: " + e.getMessage());
+    
+                        tempFileI.deleteOnExit();
+                        tempFileO.deleteOnExit();
+                        break;
                     }
+                    case "xml":
+                    {
+                        File tempFileI = File.createTempFile("inputText", ".tmp");
+                        XmlProcessor xmlProc= new XmlProcessor();
+    
+                        String tempFileO= tempFileI.toString().substring(0,tempFileI.toString().lastIndexOf('.'))+"-computed-.xml";
+                        Files.writeString(tempFileI.toPath(), inputText);
+                        xmlProc.compute(tempFileI.toPath().toString());
+    
+                        if (tempFileO!= null) 
+                        {
+                            try (BufferedReader reader = new BufferedReader(new FileReader(tempFileI.toString().substring(0,tempFileI.toString().lastIndexOf('.'))+"-computed-.xml"))) 
+                            {
+                                StringBuilder content = new StringBuilder();
+                                String line;
+                                
+                                while ((line = reader.readLine()) != null) 
+                                {
+                                    content.append(line).append("\n");
+                                }
+                                outputTextArea.setText(content.toString());
+                            } 
+                            catch (IOException e) 
+                            {
+                                outputTextArea.setText("Error reading file: " + e.getMessage());
+                            }
+                        }
+    
+                        tempFileI.deleteOnExit();
+                        break;
+                    }
+                        
                 }
-    
-                tempFileI.deleteOnExit();
-                tempFileO.deleteOnExit();
-    
                 break;
             }
             case "json":
@@ -307,7 +375,7 @@ public class MainController
     @FXML
     private void handleSaveResult() 
     {
-
+        fileSavedLabel.setVisible(true);
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Save Result As");
 
