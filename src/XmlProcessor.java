@@ -66,7 +66,7 @@ class XmlProcessor
 
             if (line.contains(":")) 
             {
-                String[] parts = line.split(":".2);
+                String[] parts = line.split(":",2);
                 String tagName = parts[0].trim();
                 String value = parts.length > 1 ? parts[1].trim() : "";
                 
