@@ -70,10 +70,6 @@ class XmlProcessor
                 String tagName = parts[0].trim();  
                 String value = parts.length > 1 ? parts[1].trim() : ""; 
             
-                String[] parts = line.split(":".2);
-                String tagName = parts[0].trim();
-                String value = parts.length > 1 ? parts[1].trim() : "";
-                
                 Element element = doc.createElement(tagName);
 
                 if (root == null) 
