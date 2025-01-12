@@ -1,8 +1,12 @@
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Label;
+import javafx.stage.Stage;
+import javafx.scene.Scene;
+import javafx.scene.Parent;
 import javafx.stage.FileChooser;
 
 import java.io.BufferedReader;
@@ -43,6 +47,10 @@ public class MainController
         fileSavedLabel.setVisible(false);
         outExtComboBox.setValue("txt");
         outExtComboBox.getItems().addAll("txt","xml","json","yaml");
+        outExtComboBox.setOnAction(event ->{
+            outputTextArea.clear();
+            });
+
         extComboBox.setOnAction(event -> {
             String selectedItem = extComboBox.getValue();
             if (selectedItem != null) {
@@ -55,6 +63,7 @@ public class MainController
     {
         outExtComboBox.getItems().clear();
 
+        outputTextArea.clear();
         switch (selectedItem) 
         {
             case "txt":
@@ -328,6 +337,7 @@ public class MainController
             }
             case "json":
             {
+
                 File tempFileI = File.createTempFile("inputText", ".json");
                 File tempFileP = File.createTempFile("parsedText", ".tmp");
                 File tempFileO = File.createTempFile("outputText", ".tmp");
@@ -337,36 +347,149 @@ public class MainController
                 jsonParser.setInputJsonFile(tempFileI.toString());
                 jsonParser.setOutputTextFile(tempFileP.toString());
                 jsonParser.processJsonToText();
-                
+
                 var buffWriter = new BufferedWriter(new FileWriter(tempFileO.toString()));
                 buffWriter.write(TxtProcessor.processContent(TxtProcessor.readFile(tempFileP.toString())));
                 buffWriter.close();
 
-                if (tempFileO!= null) 
+                switch (outChoice)
                 {
-                    try (BufferedReader reader = new BufferedReader(new FileReader(tempFileO))) 
+                    case "txt":
                     {
-                        StringBuilder content = new StringBuilder();
-                        String line;
-                        
-                        while ((line = reader.readLine()) != null) 
+
+                        if (tempFileO!= null) 
                         {
-                            content.append(line).append("\n");
+                            try (BufferedReader reader = new BufferedReader(new FileReader(tempFileO))) 
+                            {
+                                StringBuilder content = new StringBuilder();
+                                String line;
+                                
+                                while ((line = reader.readLine()) != null) 
+                                {
+                                    content.append(line).append("\n");
+                                }
+                                outputTextArea.setText(content.toString());
+                            } 
+                            catch (IOException e) 
+                            {
+                                outputTextArea.setText("Error reading file: " + e.getMessage());
+                            }
                         }
-                        outputTextArea.setText(content.toString());
-                    } 
-                    catch (IOException e) 
+
+                        tempFileI.deleteOnExit();
+                        tempFileO.deleteOnExit();
+                        tempFileP.deleteOnExit();
+                        break;
+                    }
+                    case "json":
                     {
-                        outputTextArea.setText("Error reading file: " + e.getMessage());
+
+                        var jsonParser2 = new SingleLineTextToJsonConverter();
+                        jsonParser2.setInputTextFile(tempFileO.toString());
+                        jsonParser2.setOutputJsonFile(tempFileI.toString());
+                        jsonParser2.processTextToJson();
+                        
+                        if (tempFileI!= null) 
+                        {
+                            try (BufferedReader reader = new BufferedReader(new FileReader(tempFileI))) 
+                            {
+                                StringBuilder content = new StringBuilder();
+                                String line;
+                                
+                                while ((line = reader.readLine()) != null) 
+                                {
+                                    content.append(line).append("\n");
+                                }
+                                outputTextArea.setText(content.toString());
+                            } 
+                            catch (IOException e) 
+                            {
+                                outputTextArea.setText("Error reading file: " + e.getMessage());
+                            }
+                        }
+
+                        tempFileI.deleteOnExit();
+                        tempFileO.deleteOnExit();
+                        tempFileP.deleteOnExit();
+                        break;
                     }
                 }
-
-                tempFileI.deleteOnExit();
-                tempFileO.deleteOnExit();
 
                 break;
             }
             case "yaml":
+            {
+                switch (outChoice)                
+                {
+                    case "txt":
+                    {
+                        File tempFileI = File.createTempFile("inputText", ".tmp");
+                        File tempFileO = File.createTempFile("outputText", ".tmp");
+                        var yamlParser= new YamlProcessor();
+    
+                        Files.writeString(tempFileI.toPath(), inputText);
+                        yamlParser.compute(tempFileI.toString());
+                        yamlParser.toTxt(tempFileI.toString().substring(0,tempFileI.toString().lastIndexOf('.'))+"-computed-.yaml",tempFileO.toString()); 
+                        
+    
+                        if (tempFileO!= null) 
+                        {
+                            try (BufferedReader reader = new BufferedReader(new FileReader(tempFileO.toString()))) 
+                            {
+                                StringBuilder content = new StringBuilder();
+                                String line;
+                                
+                                while ((line = reader.readLine()) != null) 
+                                {
+                                    content.append(line).append("\n");
+                                }
+                                outputTextArea.setText(content.toString());
+                            } 
+                            catch (IOException e) 
+                            {
+                                outputTextArea.setText("Error reading file: " + e.getMessage());
+                            }
+                        }
+    
+                        tempFileI.deleteOnExit();
+                        tempFileO.deleteOnExit();
+                        break;
+                    }
+                    case "yaml":
+                    {
+                        
+                        File tempFileI = File.createTempFile("inputText", ".tmp");
+                        File tempFileO = File.createTempFile("outputText", ".tmp");
+                        var yamlParser= new YamlProcessor();
+    
+                        Files.writeString(tempFileI.toPath(),inputText);
+                        yamlParser.compute(tempFileI.toString());
+    
+                        if (tempFileO!= null) 
+                        {
+                            try (BufferedReader reader = new BufferedReader(new FileReader(tempFileI.toString().substring(0,tempFileI.toString().lastIndexOf('.'))+"-computed-.yaml"))) 
+                            {
+                                StringBuilder content = new StringBuilder();
+                                String line;
+                                
+                                while ((line = reader.readLine()) != null) 
+                                {
+                                    content.append(line).append("\n");
+                                }
+                                outputTextArea.setText(content.toString());
+                            } 
+                            catch (IOException e) 
+                            {
+                                outputTextArea.setText("Error reading file: " + e.getMessage());
+                            }
+                        }
+    
+                        tempFileI.deleteOnExit();
+                        tempFileO.deleteOnExit();
+                        break;
+                    }
+                }
+            }
                 break;
         }
 
@@ -393,6 +516,49 @@ public class MainController
                 fileSavedLabel.setText("Error");
             }
         }
+    }
+    
+    @FXML
+    private void openArchivatorWindow() 
+    {
+        try 
+        {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("Archivator.fxml"));
+            Parent root = loader.load();
+
+            Stage archivatorStage = new Stage();
+            archivatorStage.setTitle("Archivator");
+            archivatorStage.setScene(new Scene(root, 600, 1000));
+
+            archivatorStage.setWidth(800); // Set explicit width
+            archivatorStage.setHeight(600); // Set explicit height
+
+            archivatorStage.show();
+        } 
+        catch (Exception e) 
+        {
+            e.printStackTrace();
+        }
+    }
+    @FXML
+    private void openCryptatorWindow()
+    {
+        try
+        {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("Cryptator.fxml"));
+            Parent root = loader.load();
+
+            Stage cryptatorStage = new Stage();
+            cryptatorStage.setTitle("Cryptator");
+            cryptatorStage.setScene(new Scene(root, 600, 1000));
+                
+            cryptatorStage.show();
+        }
+        catch( Exception e)
+        {
+            e.printStackTrace();
+        }
+
     }
 }
 
