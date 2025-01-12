@@ -9,13 +9,15 @@ public class TxtProcessor {
     }
 
     public static String processContent(String content) {
-        content = content.replaceAll("\\(-\\)", "(-1)");
-        content = content.replaceAll("\\(\\)", "(1)");
-        content = content.replaceAll("\\)\\(", ")*(");
-
-        content = evaluatePowers(content);
-
+        content = simplifyConsecutiveSigns(content);
+        content = simplifyConsecutiveSigns2(content);
+        content = evaluateBrackets(content);
+        content = simplifyConsecutiveSigns(content);
         content = evaluateFactorials(content);
+        content = simplifyConsecutiveSigns(content);
+        content = evaluatePowers(content);
+        content = simplifyConsecutiveSigns(content);
+        content = evaluateTrigonometricFunctions(content);
 
         while (content.contains("(")) {
             String regex = "\\(([^()]+)\\)";
@@ -33,23 +35,105 @@ public class TxtProcessor {
         }
 
         content = simplifyConsecutiveSigns(content);
-        content = evaluateFactorials(content);
+        content = evaluatePowers(content);
+        content = simplifyConsecutiveSigns(content);
+        content = evaluateTrigonometricFunctions(content);
         content = simplifyConsecutiveSigns(content);
 
         return evaluateExpression(content);
+    }
+
+    private static String evaluateBrackets(String expression) {
+        expression = expression.replaceAll("\\(\\s*-\\s*\\)", "(-1)");
+        expression = expression.replaceAll("\\(\\s*\\+\\s*\\)", "(1)");
+        expression = expression.replaceAll("\\(\\s*\\)", "(1)");
+        expression = expression.replaceAll("\\)\\s*\\(", ")*(");
+
+        return expression;
     }
 
     private static String evaluateExpression(String expression) {
         String original = expression;
 
         expression = evaluateFactorials(expression);
+        expression = evaluatePowers(expression);
         expression = evaluateTrigonometricFunctions(expression);
-        expression = evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*\\*\\s*\\d+(\\.\\d+)?", "*");
-        expression = evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*/\\s*\\d+(\\.\\d+)?", "/");
-        expression = evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*\\+\\s*\\d+(\\.\\d+)?", "+");
-        expression = evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*-\\s*\\d+(\\.\\d+)?", "-");
+
+        String firstPriorityRegex = "\\d+(\\.\\d+)?\\s*(\\*|/|\\*\\s*[-+]|/\\s*[-+])\\s*-?\\d+(\\.\\d+)?";
+        Pattern firstPriorityPattern = Pattern.compile(firstPriorityRegex);
+        Matcher firstPriorityMatcher = firstPriorityPattern.matcher(expression);
+        while (firstPriorityMatcher.find()) {
+            expression = evaluatePriority1(expression, firstPriorityMatcher.group());
+            firstPriorityMatcher = firstPriorityPattern.matcher(expression);
+        }
+
+        String secondPriorityRegex = "\\d+(\\.\\d+)?\\s*[+-]\\s*-?\\d+(\\.\\d+)?";
+        Pattern secondPriorityPattern = Pattern.compile(secondPriorityRegex);
+        Matcher secondPriorityMatcher = secondPriorityPattern.matcher(expression);
+        while (secondPriorityMatcher.find()) {
+            expression = evaluatePriority2(expression, secondPriorityMatcher.group());
+            secondPriorityMatcher = secondPriorityPattern.matcher(expression);
+        }
 
         return expression.equals(original) ? expression : expression.trim();
+    }
+
+    private static String evaluatePriority1(String expression, String match) {
+        if (match.matches("\\d+(\\.\\d+)?\\s*\\*\\s*-\\s*\\d+(\\.\\d+)?")) {
+            return evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*\\*\\s*-\\s*\\d+(\\.\\d+)?", "*-");
+        } else if (match.matches("\\d+(\\.\\d+)?\\s*\\*\\s*\\+\\s*\\d+(\\.\\d+)?")) {
+            return evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*\\*\\s*\\+\\s*\\d+(\\.\\d+)?", "*+");
+        } else if (match.matches("\\d+(\\.\\d+)?\\s*/\\s*-\\s*\\d+(\\.\\d+)?")) {
+            return evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*/\\s*-\\s*\\d+(\\.\\d+)?", "/-");
+        } else if (match.matches("\\d+(\\.\\d+)?\\s*/\\s*\\+\\s*\\d+(\\.\\d+)?")) {
+            return evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*/\\s*\\+\\s*\\d+(\\.\\d+)?", "/+");
+        } else if (match.contains("*")) {
+            return evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*\\*\\s*\\d+(\\.\\d+)?", "*");
+        } else if (match.contains("/")) {
+            return evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*/\\s*\\d+(\\.\\d+)?", "/");
+        }
+        throw new IllegalArgumentException("Неизвестный оператор в первом приоритете: " + match);
+    }
+
+    private static String evaluatePriority2(String expression, String match) {
+        if (match.contains("-")) {
+            return evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*-\\s*\\d+(\\.\\d+)?", "-");
+        } else if (match.contains("+")) {
+            return evaluateByRegex(expression, "\\d+(\\.\\d+)?\\s*\\+\\s*\\d+(\\.\\d+)?", "+");
+        }
+        throw new IllegalArgumentException("Неизвестный оператор во втором приоритете: " + match);
+    }
+
+    private static String evaluateByRegex(String expression, String regex, String operator) {
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(expression);
+
+        while (matcher.find()) {
+            String match = matcher.group();
+            String cleaned = match.replaceAll(" ", "");
+            double result = calculate(cleaned, operator);
+            expression = expression.replace(match, String.valueOf(result));
+            matcher = pattern.matcher(expression);
+        }
+        return expression;
+    }
+
+    private static double calculate(String operation, String operator) {
+        String[] parts = operation.split(Pattern.quote(operator));
+        double left = Double.parseDouble(parts[0]);
+        double right = Double.parseDouble(parts[1]);
+
+        switch (operator) {
+            case "*": return left * right;
+            case "/": return left / right;
+            case "*-": return left * right * (-1);
+            case "/-": return left / right * (-1);
+            case "*+": return left * right;
+            case "/+": return left / right;
+            case "-": return left - right;
+            case "+": return left + right;
+            default: throw new IllegalArgumentException("Неизвестный оператор: " + operator);
+        }
     }
 
     private static String evaluatePowers(String expression) {
@@ -69,7 +153,9 @@ public class TxtProcessor {
                 throw new IllegalArgumentException("Возведение в степень для отрицательных чисел с дробным показателем не поддерживается");
             }
             double result = Math.pow(base, exponent);
-            if (!base0Str.contains("(-")) result = -result;
+            if (!base0Str.contains("(-") && base0Str.contains("-")) {
+                result = -result;
+            }
 
             matcher.appendReplacement(buffer, String.valueOf(result));
         }
@@ -78,37 +164,8 @@ public class TxtProcessor {
         return buffer.toString();
     }
 
-    private static String evaluateByRegex(String expression, String regex, String operator) {
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(expression);
-
-        while (matcher.find()) {
-            String match = matcher.group();
-            String cleaned = match.replaceAll("\\s+", "");
-            double result = calculate(cleaned, operator);
-            expression = expression.replace(match, String.valueOf(result));
-            matcher = pattern.matcher(expression);
-        }
-        return expression;
-    }
-
-    private static double calculate(String operation, String operator) {
-        String[] parts = operation.split(Pattern.quote(operator));
-        double left = Double.parseDouble(parts[0]);
-        double right = Double.parseDouble(parts[1]);
-
-        switch (operator) {
-            case "^": return Math.pow(left, right);
-            case "*": return left * right;
-            case "/": return left / right;
-            case "+": return left + right;
-            case "-": return left - right;
-            default: throw new IllegalArgumentException("Неизвестный оператор: " + operator);
-        }
-    }
-
     private static String evaluateFactorials(String expression) {
-        Pattern pattern = Pattern.compile("([-+]?(\\d+(\\.\\d+)?|\\(\\s*-?\\d+(\\.\\d+)?\\s*\\)))\\s*!");
+        Pattern pattern = Pattern.compile("((\\d+(\\.\\d+)?|\\(\\s*-?\\d+(\\.\\d+)?\\s*\\)))\\s*!");
         Matcher matcher = pattern.matcher(expression);
 
         StringBuffer buffer = new StringBuffer();
@@ -135,7 +192,7 @@ public class TxtProcessor {
     }
 
     private static String evaluateTrigonometricFunctions(String expression) {
-        Pattern pattern = Pattern.compile("(sin|cos|tan)\\(?([-+]?\\d+(\\.\\d+)?([eE][-+]?\\d+)?)\\)?");
+        Pattern pattern = Pattern.compile("(sin|cos|tan)\\s*([-+]?\\d+(\\.\\d+)?([eE][-+]?\\d+)?)");
         Matcher matcher = pattern.matcher(expression);
 
         StringBuffer buffer = new StringBuffer();
@@ -170,6 +227,24 @@ public class TxtProcessor {
             long minusCount = sequence.chars().filter(ch -> ch == '-').count();
 
             String replacement = (minusCount % 2 == 0) ? "+" : "-";
+            matcher.appendReplacement(buffer, replacement);
+        }
+        matcher.appendTail(buffer);
+
+        return buffer.toString();
+    }
+
+    private static String simplifyConsecutiveSigns2(String expression) {
+        Pattern pattern = Pattern.compile("([*/](\\s*[*/]){1,})");
+        Matcher matcher = pattern.matcher(expression);
+
+        StringBuffer buffer = new StringBuffer();
+        while (matcher.find()) {
+            String sequence = matcher.group(1).replaceAll("\\s+", "");
+
+            long minusCount = sequence.chars().filter(ch -> ch == '/').count();
+
+            String replacement = (minusCount % 2 == 0) ? "*" : "/";
             matcher.appendReplacement(buffer, replacement);
         }
         matcher.appendTail(buffer);
