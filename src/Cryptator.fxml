@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.text.Font?>
+
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="332.0" prefWidth="349.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="CryptatorController">
+   <children>
+      <Label layoutX="130.0" layoutY="26.0" text="Cryptator" underline="true">
+         <font>
+            <Font size="20.0" />
+         </font>
+      </Label>
+      <Label layoutX="34.0" layoutY="72.0" text="Enc" />
+      <Label layoutX="276.0" layoutY="72.0" text="Decr" />
+      <Button fx:id="loadFileBut" layoutX="15.0" layoutY="103.0" mnemonicParsing="false" onAction="#handleLoadFile" text="Load file" />
+      <Button fx:id="loadPrivateButton" layoutX="15.0" layoutY="140.0" mnemonicParsing="false" onAction="#handleLoadPrK" text="Load PrK" />
+      <Button fx:id="loadPublicButton" layoutX="15.0" layoutY="180.0" mnemonicParsing="false" onAction="#handleLoadPuK" text="Load PuK" />
+      <Button fx:id="encButton" layoutX="15.0" layoutY="226.0" mnemonicParsing="false" onAction="#handleEncryption" text="Encrypt" underline="true" />
+      <Button fx:id="loadEncFile" layoutX="238.0" layoutY="103.0" mnemonicParsing="false" onAction="#handleLoadEnc" text="Load .enc" />
+      <Button fx:id="loadPrivateButton2" layoutX="238.0" layoutY="140.0" mnemonicParsing="false" onAction="#handleLoadPrK2" text="Load PrK" />
+      <Button fx:id="loadPublicButton2" layoutX="238.0" layoutY="180.0" mnemonicParsing="false" onAction="#handleLoadPuK2" text="Load PuK" />
+      <Button fx:id="decryptButton" layoutX="246.0" layoutY="226.0" mnemonicParsing="false" onAction="#handleDecryption" text="Decrypt" underline="true" />
+   </children>
+</AnchorPane>
