@@ -26,6 +26,9 @@ public class ArchivatorController
     @FXML
     private Label zipName2;
 
+    private File toZipFile;
+    private File toUnZipFile;
+
     @FXML
     public void initialize()
     {
@@ -41,25 +44,22 @@ public class ArchivatorController
         FileChooser fileChooser = new FileChooser();
  
         fileChooser.setTitle("Open Zip File");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Files","*."+"zip"));
-
-        File selectedFile = fileChooser.showOpenDialog(null);
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Files","*.zip"));
+        toUnZipFile= fileChooser.showOpenDialog(null);
         
-        zipName2.setText(selectedFile.getName());
+        zipName2.setText(toUnZipFile.getName());
         zipName2.setVisible(true);
         
     }
     
     @FXML
-    private void handleMakeZip()
+    private void handleLoadFile() throws Exception
     {
         FileChooser fileChooser = new FileChooser();
- 
         fileChooser.setTitle("Open File To Zip");
-
-        File selectedFile = fileChooser.showOpenDialog(null);
+        toZipFile= fileChooser.showOpenDialog(null);
         
-        zipName1.setText(selectedFile.getName());
+        zipName1.setText(toZipFile.getName());
         zipName1.setVisible(true);
         
     }
@@ -68,9 +68,18 @@ public class ArchivatorController
     private void handleZip() throws Exception
     {
         var zip= new ZipArchiver();
-        zip.zipFiles(zipName1.getText(),"zip.txt");
-        zipOut1.setText("zip.txt");
+        zip.zipSingleFile(toZipFile.toString(),toZipFile.toString()+".zip");
+        zipOut1.setText(toZipFile.getName()+".zip");
         zipOut1.setVisible(true);
         
+    }
+
+    @FXML
+    private void handleUnzip() throws Exception
+    {
+        var zip= new ZipExtractor();
+        zip.unzip(zipName2.getText(),toUnZipFile.toString().substring(0,toUnZipFile.toString().length()-toUnZipFile.getName().length()));
+        zipOut2.setText(toUnZipFile.getName());
+        zipOut2.setVisible(true);
     }
 }
